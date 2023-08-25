@@ -2,7 +2,16 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Test from '@/views/test/index.vue'
 
 // 路由配置
-const routes = [{ path: '/test', component: Test }]
+const routes = [
+  {
+    path: '/login',
+    component: () => import('@/views/login/index.vue')
+  },
+  {
+    path: '/test',
+    component: Test
+  }
+]
 
 // 创建路由实例
 const router = createRouter({

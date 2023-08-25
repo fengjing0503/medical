@@ -19,7 +19,15 @@ export const useUserStore = defineStore(
     // 返回变量和方法
     return { user, setUser, delUser }
   },
+  // 默认存储所有数据,以store的ID作为存储的key
+  // {
+  //   persist: true
+  // }
+  // 自定义存储的key,指定存储那些数据
   {
-    persist: true
+    persist: {
+      key: 'cp-user',
+      paths: ['user']
+    }
   }
 )

@@ -1,6 +1,11 @@
 <template>
   <div>
     <h1>测试页面</h1>
+    <svg aria-hidden="true">
+      <!-- #icon-文件夹名称-图片名称 -->
+      <use href="#icon-login-eye-off" />
+    </svg>
+    <cp-icon name="home-docs"></cp-icon>
     <ul>
       <li>{{ store.user }}</li>
       <li @click="set">点击</li>

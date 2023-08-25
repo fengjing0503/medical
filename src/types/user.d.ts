@@ -6,3 +6,5 @@ export type User = {
   mobile: string
   avatar: string
 }
+
+export type CodeType = 'login' | 'register'
