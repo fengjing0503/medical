@@ -92,7 +92,7 @@ const login = async () => {
     ? await loginByPassword(mobile.value, password.value)
     : await loginByMobile(mobile.value, code.value)
   // console.log(res)
-  store.setUser(res)
+  store.setUser(res.data)
   // 如果有会跳地址就进行回跳,没有就跳转个人中心
   router.push((route.query.returnUrl as string) || '/user')
   showSuccessToast('登陆成功')
@@ -111,9 +111,10 @@ const send = async () => {
   if (time.value > 0) return
   await form.value?.validate('mobile')
   // 发送请求
-  const res = await sendMobileCode(mobile.value, 'login').catch((e) => console.log(e.message))
-  console.log(res)
+  const res = await sendMobileCode(mobile.value, 'login')
+  console.log(res.data)
   showSuccessToast('发送成功')
+  code.value = res.data.code
   time.value = 60
   // 倒计时开始
   timeId = setInterval(() => {
