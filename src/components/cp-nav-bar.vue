@@ -3,6 +3,8 @@ import router from '@/router'
 
 // 封装需求❓：支持 title rightText 属性，支持 click-right 事件，click-left函数内支持返回上一页或默认首页
 const onClickLeft = () => {
+  // 如果有back就不执行路由返回
+  if (props.back) return props.back()
   //点击左侧返回
   if (history.state.back) {
     router.back()
@@ -11,9 +13,10 @@ const onClickLeft = () => {
   }
 }
 
-defineProps<{
+const props = defineProps<{
   title: string
-  rightText: string
+  rightText?: string
+  back?: () => void
 }>()
 
 const emit = defineEmits<{
@@ -26,8 +29,8 @@ const emit = defineEmits<{
     left-arrow
     @click-left="onClickLeft"
     fixed
-    :title="title"
-    :right-text="rightText"
+    :title="props.title"
+    :right-text="props.rightText"
     @click-right="emit('click-right')"
   ></van-nav-bar>
 </template>

@@ -1,4 +1,4 @@
-import type { CodeType, User } from '@/types/user'
+import type { CodeType, User, UserInfo, PatientList, Patient } from '@/types/user'
 import { request } from '@/utils/request'
 
 // 密码登录
@@ -12,3 +12,18 @@ export const sendMobileCode = (mobile: string, type: CodeType) =>
 // 验证码登录
 export const loginByMobile = (mobile: string, code: string) =>
   request.post<User>('/login', { mobile, code })
+
+// 获取个人信息
+export const getUserInfo = () => request.get<UserInfo>('/patient/myUser')
+
+// 获取家庭档案患者信息
+export const getPatientList = () => request.get<PatientList>('/patient/mylist')
+
+// 添加患者信息
+export const addPatient = (patient: Patient) => request.post('/patient/add', patient)
+
+// 编辑患者信息
+export const editPatinet = (patient: Patient) => request.put('/patient/update', patient)
+
+// 删除患者信息
+export const delPatinet = (id: string | undefined) => request.delete(`patient/del/${id}`)
