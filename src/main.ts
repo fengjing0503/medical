@@ -9,6 +9,7 @@ import '@/styles/main.scss'
 // vant需要单独引入的样式
 import 'vant/es/toast/style'
 import 'vant/es/dialog/style'
+import 'vant/es/image-preview/style'
 
 // 注册图标
 import 'virtual:svg-icons-register'

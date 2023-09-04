@@ -1,107 +1,177 @@
 <script setup lang="ts">
 // 评价医生
+import type { Message, Prescription } from '@/types/room'
 import EvaluateCard from './EvaluateCard.vue'
+import { ConsultTime, MsgType, PrescriptionStatus } from '@/enums/index'
+// 导入患病时间和是否就诊过常量数据
+import { flagOptions, timeOptions } from '@/api/const'
+// 导入预览图片的方法
+import { showFailToast, showImagePreview } from 'vant'
+import { useLookPre } from '@/hooks/index'
+import type { Image } from '@/types/consult'
+
+import dayjs from 'dayjs'
+import { useUserStore } from '@/stores'
+import { useRouter } from 'vue-router'
+// 接受患者和医生聊天列表
+defineProps<{
+  list: Message[]
+}>()
+const store = useUserStore()
+// 1.定义格式化病情描述中患病时间和是否就诊过数据的方法
+// 获取患病时间label信息
+const formatIllness = (value: ConsultTime) => {
+  return timeOptions.find((item) => {
+    item.value === value
+  })?.label
+}
+// 获取是否就诊label信息
+const formatFlag = (flag: 0 | 1) => flagOptions.find((item) => item.value === flag)?.label
+// 2.预览患者病情描述图片
+const previewImg = (imgs?: Image[]) => {
+  if (imgs && imgs.length > 0) {
+    showImagePreview(imgs.map((item) => item.url))
+  } else {
+    showFailToast('没有上传图片')
+  }
+}
+// 3.格式化消息时间为时分
+const formatTime = (time: string) => dayjs(time).format('HH:mm')
+
+// 4.图片加载成功=> 执行滚动
+const loadSuccess = () => {
+  window.scrollTo(0, document.body.scrollHeight)
+}
+
+// 5.点击查看处方
+const { showPrescription } = useLookPre()
+// const showPrescription = async (id?: string) => {
+//   if (!id) return //排除undefined情况,限定类型
+//   const { data } = await getPrescriptionPic(id)
+//   showImagePreview([data.url]) //图片预览
+// }
+
+// 6.点击购买处方商品
+const router = useRouter()
+const buy = (pre?: Prescription) => {
+  if (pre) {
+    // 1. 如果处方失效：提示即可
+    if (pre.status === PrescriptionStatus.Invalid) return showFailToast('处方已失效')
+    // 2. 如果没付款且没订单ID：去药品预支付页面
+    if (pre.status === PrescriptionStatus.NotPayment)
+      return router.push(`/medicine/pay?id=${pre.id}`)
+  }
+}
 </script>
 
 <template>
   <!-- 消息列表 -->
-  <template v-for="item in 2" :key="item">
-    <!-- 1. 病情描述 -->
-    <div class="msg msg-illness" v-if="true">
-      <div class="patient van-hairline--bottom">
-        <p>李富贵 男 31岁</p>
-        <p>一周内 | 未去医院就诊</p>
+  <template v-for="{ msgType, msg, id, from, fromAvatar, createTime } in list" :key="id">
+    <!-- item的消息显示需要根据当前消息类型,匹配对应的消息卡片渲染 -->
+    <div class="msg msg-illness" v-if="msgType === MsgType.CardPat">
+      <div class="patient van-hairline--bottom" v-if="msg.consultRecord">
+        <p>
+          {{ msg.consultRecord.patientInfo.name }}
+          {{ msg.consultRecord.patientInfo.genderValue }}
+          {{ msg.consultRecord.patientInfo.age }}岁
+        </p>
+        <p>
+          {{ formatIllness(msg.consultRecord.illnessTime) }} |
+          {{ formatFlag(msg.consultRecord.consultFlag) }}
+        </p>
       </div>
       <van-row>
         <van-col span="6">病情描述</van-col>
-        <van-col span="18">头痛、头晕、恶心</van-col>
+        <van-col span="18">{{ msg.consultRecord?.illnessDesc }}</van-col>
         <van-col span="6">图片</van-col>
-        <van-col span="18">点击查看</van-col>
+        <van-col span="18" @click="previewImg(msg.consultRecord?.pictures)"> 点击查看 </van-col>
       </van-row>
     </div>
-    <!-- 2. 温馨提示 -->
-    <div class="msg msg-tip" v-if="true">
+    <!--2.  温馨提示 -->
+    <div class="msg msg-tip" v-if="msgType === MsgType.NotifyTip">
       <div class="content">
         <span class="green">温馨提示：</span>
-        <span>在线咨询不能代替面诊，医护人员建议仅供参考</span>
+        <span>{{ msg.content }}</span>
       </div>
     </div>
     <!-- 3. 通用通知 -->
-    <div class="msg msg-tip" v-if="true">
+    <div class="msg msg-tip" v-if="msgType === MsgType.Notify">
       <div class="content">
-        <span>医护人员正在赶来，请耐心等候</span>
+        <span>{{ msg.content }}</span>
       </div>
     </div>
-     <!-- 4. 发送文字 -->
-     <div class="msg msg-to" v-if="false">
+    <!-- 4.发送文字：患者发的消息 -->
+    <div class="msg msg-to" v-if="msgType === MsgType.MsgText && store.user?.id === from">
       <div class="content">
-        <div class="time">20:12</div>
-        <div class="pao">大夫你好？</div>
+        <div class="time">{{ formatTime(createTime) }}</div>
+        <div class="pao">{{ msg.content }}</div>
       </div>
-      <van-image src="https://yjy-oss-files.oss-cn-zhangjiakou.aliyuncs.com/tuxian/popular_3.jpg" />
+      <van-image :src="store.user?.avatar" />
     </div>
-    <!-- 5. 接收文字 -->
-    <div class="msg msg-from" v-if="false">
-      <van-image src="https://yjy-oss-files.oss-cn-zhangjiakou.aliyuncs.com/tuxian/popular_3.jpg" />
+
+    <!-- 5.接收文字：医生发的消息 -->
+    <div class="msg msg-from" v-if="msgType === MsgType.MsgText && store.user?.id !== from">
+      <van-image :src="fromAvatar" />
       <div class="content">
-        <div class="time">20:12</div>
-        <div class="pao">哪里不舒服</div>
+        <div class="time">{{ formatTime(createTime) }}</div>
+        <div class="pao">{{ msg.content }}</div>
       </div>
     </div>
     <!-- 6. 发送图片 -->
-    <div class="msg msg-to" v-if="false">
+    <div class="msg msg-to" v-if="msgType === MsgType.MsgImage && store.user?.id === from">
       <div class="content">
-        <div class="time">20:12</div>
-        <van-image
-          fit="contain"
-          src="https://yjy-oss-files.oss-cn-zhangjiakou.aliyuncs.com/tuxian/popular_3.jpg"
-        />
+        <div class="time">{{ formatTime(createTime) }}</div>
+        <van-image @load="loadSuccess()" fit="contain" :src="msg.picture?.url" />
       </div>
-      <van-image src="https://yjy-oss-files.oss-cn-zhangjiakou.aliyuncs.com/tuxian/popular_3.jpg" />
+      <van-image :src="store.user?.avatar" />
     </div>
     <!-- 7. 接收图片 -->
-    <div class="msg msg-from" v-if="false">
-      <van-image src="https://yjy-oss-files.oss-cn-zhangjiakou.aliyuncs.com/tuxian/popular_3.jpg" />
+    <div class="msg msg-from" v-if="msgType === MsgType.MsgImage && store.user?.id !== from">
+      <van-image :src="fromAvatar" />
       <div class="content">
-        <div class="time">20:12</div>
-        <van-image
-          fit="contain"
-          src="https://yjy-oss-files.oss-cn-zhangjiakou.aliyuncs.com/tuxian/popular_3.jpg"
-        />
+        <div class="time">{{ formatTime(createTime) }}</div>
+        <van-image @load="loadSuccess()" fit="contain" :src="msg.picture?.url" />
       </div>
     </div>
     <!-- 8. 处方消息 -->
-    <div class="msg msg-recipe" v-if="false">
+    <div class="msg msg-recipe" v-if="msgType === MsgType.CardPre">
       <div class="content">
         <div class="head van-hairline--bottom">
           <div class="head-tit">
             <h3>电子处方</h3>
-            <p>原始处方 <van-icon name="arrow"></van-icon></p>
+            <p @click="showPrescription(msg.prescription?.id)">
+              原始处方 <van-icon name="arrow"></van-icon>
+            </p>
           </div>
-          <p>李富贵 男 31岁 血管性头痛</p>
-          <p>开方时间：2022-01-15 14:21:42</p>
+          <p>
+            {{ msg.prescription?.name }}
+            {{ msg.prescription?.genderValue }}
+            {{ msg.prescription?.age }}岁
+            {{ msg.prescription?.diagnosis }}
+          </p>
+          <p>开方时间：{{ msg.prescription?.createTime }}</p>
         </div>
         <div class="body">
-          <div class="body-item" v-for="i in 2" :key="i">
+          <div class="body-item" v-for="med in msg.prescription?.medicines" :key="med.id">
             <div class="durg">
-              <p>优赛明 维生素E乳</p>
-              <p>口服，每次1袋，每天3次，用药3天</p>
+              <p>{{ med.name }} {{ med.specs }}</p>
+              <p>{{ med.usageDosag }}</p>
             </div>
-            <div class="num">x1</div>
+            <div class="num">x{{ med.quantity }}</div>
           </div>
         </div>
-        <div class="foot"><span>购买药品</span></div>
+        <div class="foot" @click="buy(msg.prescription)"><span>购买药品</span></div>
       </div>
     </div>
-    <!-- 9. 订单取消 -->
-    <div class="msg msg-tip msg-tip-cancel" v-if="false">
+    <!-- 9. 订单取消/关闭诊室 -->
+    <div class="msg msg-tip msg-tip-cancel" v-if="msgType === MsgType.NotifyCancel">
       <div class="content">
-        <span>订单取消</span>
+        <span>{{ msg.content }}</span>
       </div>
     </div>
     <!-- 10. 医生评价 -->
-    <div class="msg" v-if="false">
-      <evaluate-card></evaluate-card>
+    <div class="msg" v-if="msgType === MsgType.CardEva || msgType === MsgType.CardEvaForm">
+      <evaluate-card :evaluateDoc="msg.evaluateDoc"></evaluate-card>
     </div>
   </template>
 </template>

@@ -104,19 +104,19 @@ const isPass = ref(true)
 // 验证码双向绑定
 const code = ref('')
 // 点击获取验证码
-const time = ref(0)
-let timeId: number
-const form = ref<FormInstance>()
+const time = ref(0) //倒计时时间
+let timeId: number //倒计时定时器id
+const form = ref<FormInstance>() //获取表单实例
 const send = async () => {
-  if (time.value > 0) return
-  await form.value?.validate('mobile')
+  if (time.value > 0) return //倒计时时间大于0,60s内不能重复发送验证码
+  await form.value?.validate('mobile') //校验手机号
   // 发送请求
   const res = await sendMobileCode(mobile.value, 'login')
-  console.log(res.data)
+  // console.log(res.data)
   showSuccessToast('发送成功')
-  code.value = res.data.code
-  time.value = 60
+  code.value = res.data.code //填入验证码
   // 倒计时开始
+  time.value = 60
   timeId = setInterval(() => {
     time.value--
     if (time.value <= 0) clearInterval(timeId)

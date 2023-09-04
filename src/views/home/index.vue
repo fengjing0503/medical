@@ -18,7 +18,7 @@
           </router-link>
         </van-col>
         <van-col span="8">
-          <router-link to="/consult/fast" class="nav">
+          <router-link @click="store.setType(ConsultType.Fast)" to="/consult/fast" class="nav">
             <cp-icon name="home-graphic"></cp-icon>
             <p class="title">极速问诊</p>
             <p class="desc">20s医生极速回复</p>
@@ -71,10 +71,40 @@
       </van-swipe>
     </div>
     <!-- 4. 知识列表：关注、推荐、减脂、饮食 -->
+
+    <!-- 知识列表 -->
+    <van-tabs shrink sticky v-model:active="active">
+      <van-tab name="like" title="关注">
+        <!-- 关注医生组件 -->
+        <follow-doctor></follow-doctor>
+        <KnowledgeList type="like"></KnowledgeList>
+      </van-tab>
+      <van-tab name="recommend" title="推荐">
+        <KnowledgeList type="recommend"></KnowledgeList>
+      </van-tab>
+      <van-tab name="fatReduction" title="减脂">
+        <KnowledgeList type="fatReduction"></KnowledgeList>
+      </van-tab>
+      <van-tab name="food" title="饮食">
+        <KnowledgeList type="food"></KnowledgeList>
+      </van-tab>
+    </van-tabs>
   </div>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+// 导入知识列表组件
+import KnowledgeList from './components/KnowledgeList.vue'
+import type { KnowledgeType } from '@/types/consult'
+import { ref } from 'vue'
+// 默认选中标签页
+const active = ref<KnowledgeType>('like')
+// 关注医生组件
+import FollowDoctor from './components/FollowDoctor.vue'
+import { useConsultStore } from '@/stores'
+import { ConsultType } from '@/enums'
+const store = useConsultStore()
+</script>
 
 <style lang="scss" scoped>
 .home-page {

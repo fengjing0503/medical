@@ -1,5 +1,22 @@
 <script setup lang="ts">
 import DoctorCard from './DoctorCard.vue'
+import { useWindowSize } from '@vueuse/core'
+import { getDoctorPage } from '@/api/consult'
+import { onMounted, ref } from 'vue'
+import type { DoctorList } from '@/types/consult'
+
+const { width } = useWindowSize() //页面宽度
+
+// 获取关注医生列表数据
+const list = ref<DoctorList>([])
+const getList = async () => {
+  const { data } = await getDoctorPage({ current: 1, pageSize: 6 })
+  console.log(data)
+  list.value = data.rows
+}
+onMounted(() => {
+  getList()
+})
 </script>
 
 <template>
@@ -10,7 +27,18 @@ import DoctorCard from './DoctorCard.vue'
     </div>
     <div class="body">
       <!-- swipe 组件 -->
-      <doctor-card />
+      <van-swipe
+        :width="(150 / 375) * width"
+        class="my-swipe"
+        indicator-color="white"
+        :show-indicators="false"
+        :loop="false"
+      >
+        <van-swipe-item v-for="item in list" :key="item.id">
+          <!-- 单个医生的信息 -->
+          <doctor-card :item="item" />
+        </van-swipe-item>
+      </van-swipe>
     </div>
   </div>
 </template>

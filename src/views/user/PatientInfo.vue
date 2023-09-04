@@ -1,9 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { getPatientList, addPatient, editPatinet, delPatinet } from '@/api/user'
 import { type PatientList, type Patient } from '@/types/user'
 import { showFailToast, showSuccessToast, showConfirmDialog } from 'vant'
 import Validator from 'id-validator'
+import { useRoute } from 'vue-router'
+import { useConsultStore } from '@/stores'
+import { useRouter } from 'vue-router'
+
+// 问诊-选择患者   路由有isSel=1是选择患者
+const route = useRoute()
+console.log('路由参数', route)
+const isSel = computed(() => route.query.isSel === '1')
+// 点击选中患者
+const patientId = ref<string | undefined>() //需要存储选中的患者id
+const selectPatient = (id: string | undefined) => {
+  if (!isSel.value) return
+  patientId.value = id
+}
+// 点击下一步进入支付页面
+const store = useConsultStore()
+const router = useRouter()
+const next = () => {
+  // 判断有没有选择患者
+  if (!patientId.value) return showFailToast('请选择患者')
+  // 存储选中患者ID
+  store.setPatient(patientId.value)
+  // 跳转支付页面
+  router.push('/consult/pay')
+}
+
 // 家庭档案数据
 const patientlist = ref<PatientList>([])
 // 获取家庭档案
@@ -11,6 +37,16 @@ const getPatientInfo = async () => {
   const { data } = await getPatientList()
   console.log(data)
   patientlist.value = data
+  // 当时选择患者页面,并且有患者信息=> 设置默认选中
+  if (isSel.value && patientlist.value.length > 0) {
+    // 有没有默认患者
+    const defPatient = data.find((item) => item.defaultFlag === 1)
+    if (defPatient) {
+      patientId.value = defPatient.id //有默认患者设为默认选中
+    } else {
+      patientId.value = data[0].id //没有默认患者第一个选中
+    }
+  }
 }
 onMounted(() => {
   // 渲染页面
@@ -18,7 +54,7 @@ onMounted(() => {
 })
 // 新增  显示隐藏
 const show = ref(false)
-// 打卡新增|编辑页面
+// 打开新增|编辑页面
 const showPopup = (item?: Patient) => {
   // 有数据传回
   if (item) {
@@ -97,15 +133,21 @@ const remove = () => {
 
 <template>
   <div class="patient-page">
-    <cp-nav-bar title="家庭档案" />
+    <cp-nav-bar :title="isSel ? '选择患者' : '家庭档案'" />
     <!-- 头部选择提示 -->
-    <div class="patient-change" v-if="false">
+    <div class="patient-change" v-if="isSel">
       <h3>请选择患者信息</h3>
       <p>以便医生给出更准确的治疗，信息仅医生可见</p>
     </div>
 
     <div class="patient-list">
-      <div v-for="item in patientlist" :key="item.id" class="patient-item">
+      <div
+        @click="selectPatient(item.id)"
+        v-for="item in patientlist"
+        :key="item.id"
+        class="patient-item"
+        :class="{ selected: patientId === item.id }"
+      >
         <div class="info">
           <span class="name">{{ item.name }}</span>
           <span class="id">{{ item.idCard.replace(/^(.{6})(?:\d+)(.{4})$/, '\$1******\$2') }}</span>
@@ -123,8 +165,8 @@ const remove = () => {
     </div>
 
     <!-- 患者选择下一步 -->
-    <div class="patient-next" v-if="false">
-      <van-button type="primary" round block>下一步</van-button>
+    <div class="patient-next" v-if="isSel">
+      <van-button @click="next" type="primary" round block>下一步</van-button>
     </div>
 
     <!-- 新增患者弹层 -->
